@@ -1,0 +1,61 @@
+name: Deploy Infrastructure with Bicep
+
+on:
+  workflow_dispatch:
+    inputs:
+      resourceGroup:
+        description: 'Resource Group Name'
+        required: true
+        default: 'rg-openai-apps'
+      location:
+        description: 'Azure Region'
+        required: true
+        default: 'eastus'
+      appServicePlanSku:
+        description: 'App Service Plan SKU'
+        required: true
+        default: 'S1'
+        type: choice
+        options:
+        - F1
+        - B1
+        - S1
+        - P1V2
+
+jobs:
+  deploy-infrastructure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Create Resource Group
+      run: |
+        az group create \
+          --name ${{ github.event.inputs.resourceGroup }} \
+          --location ${{ github.event.inputs.location }}
+
+    - name: Deploy Bicep Template
+      uses: azure/arm-deploy@v1
+      with:
+        resourceGroupName: ${{ github.event.inputs.resourceGroup }}
+        template: ./infrastructure/bicep/main.bicep
+        parameters: location=${{ github.event.inputs.location }} appServicePlanSku=${{ github.event.inputs.appServicePlanSku }}
+        deploymentName: infrastructure-${{ github.run_number }}
+
+    - name: Get Deployment Outputs
+      run: |
+        echo "Deployment completed successfully!"
+        az deployment group show \
+          --resource-group ${{ github.event.inputs.resourceGroup }} \
+          --name infrastructure-${{ github.run_number }} \
+          --query properties.outputs
