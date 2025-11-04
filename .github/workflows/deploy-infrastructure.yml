@@ -25,6 +25,9 @@ on:
 jobs:
   deploy-infrastructure:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     
     steps:
     - name: Checkout code
