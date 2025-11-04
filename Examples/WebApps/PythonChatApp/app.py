@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+import asyncio
 
 app = Flask(__name__)
 
@@ -16,12 +17,13 @@ kernel.add_service(
 )
 
 @app.route('/chat', methods=['POST'])
-async def chat():
+def chat():
     data = request.json
     message = data.get('message')
     
+    # Run async function in sync context
     chat_service = kernel.get_service(type=AzureChatCompletion)
-    response = await chat_service.get_chat_message_content(message)
+    response = asyncio.run(chat_service.get_chat_message_content(message))
     
     return jsonify({'response': str(response)})
 
